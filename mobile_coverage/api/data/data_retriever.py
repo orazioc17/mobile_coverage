@@ -30,19 +30,14 @@ class MobileCoverage:
 
     def retrieve_coverage(self):
         city = self.get_city()
+        print(city)
         df = self.get_coverage_df()
         df = df.loc[df.city == city]
 
-        """
-        return as 
-        {
-            "orange": {"2G": true, "3G": true, "4G": false}, 
-            "SFR": {"2G": true, "3G": true, "4G": true}
-        }
-        """
-
-        print(df.head)
-        operators = df.groupby(by=['operator'], as_index=True)
-        print(operators)
-        return operators.to_dict(orient='index')
+        operators = (
+            df.set_index("operator")[["2G", "3G", "4G"]]
+            .astype(bool)
+            .to_dict(orient="index")
+        )
+        return operators
 

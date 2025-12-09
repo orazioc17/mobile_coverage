@@ -22,9 +22,5 @@ def get_coverage(request):
     
     mobile_coverage = MobileCoverage(address)
     coverage_data = mobile_coverage.retrieve_coverage()
-    print(coverage_data)
-
-    data = {
-        "message": "Mobile Coverage API is working!"
-    }
-    return Response(data)
+    
+    return Response(coverage_data)
