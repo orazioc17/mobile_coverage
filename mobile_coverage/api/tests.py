@@ -5,12 +5,14 @@ from django.urls import reverse
 
 from api.serializers import CoverageQuerySerializer
 from api.services.mobile_coverage import MobileCoverage
+from api.utils.constants import LIST_OPERATEURS
 
 
 class CoverageSerializerTests(TestCase):
-
     def test_serializer_valid_address(self):
-        serializer = CoverageQuerySerializer(data={"address": "42 rue papernest 75011 Paris"})
+        serializer = CoverageQuerySerializer(
+            data={"address": "42 rue papernest 75011 Paris"}
+        )
         self.assertTrue(serializer.is_valid())
 
     def test_serializer_reject_invalid_chars(self):
@@ -29,13 +31,15 @@ class CoverageSerializerTests(TestCase):
 
 class MobileCoverageServiceTests(TestCase):
     def setUp(self):
-        self.mock_df = pd.DataFrame({
-            "city": ["paris", "paris"],
-            "operator": ["Orange", "SFR"],
-            "2G": [1, 1],
-            "3G": [1, 1],
-            "4G": [0, 1],
-        })
+        self.mock_df = pd.DataFrame(
+            {
+                "city": ["paris", "paris"],
+                "operator": ["Orange", "SFR"],
+                "2G": [1, 1],
+                "3G": [1, 1],
+                "4G": [0, 1],
+            }
+        )
 
     @patch("api.services.mobile_coverage.requests.get")
     @patch("api.services.mobile_coverage.MobileCoverage.get_coverage_df")
@@ -44,9 +48,7 @@ class MobileCoverageServiceTests(TestCase):
 
         mock_resp = Mock()
         mock_resp.json.return_value = {
-            "features": [
-                {"properties": {"city": "paris", "score": 0.92}}
-            ]
+            "features": [{"properties": {"city": "paris", "score": 0.92}}]
         }
         mock_resp.raise_for_status = Mock()
         mock_get.return_value = mock_resp
@@ -84,7 +86,9 @@ class MobileCoverageServiceTests(TestCase):
     @patch("api.services.mobile_coverage.requests.get")
     @patch("api.services.mobile_coverage.MobileCoverage.get_coverage_df")
     def test_no_coverage_for_city(self, mock_df, mock_get):
-        mock_df.return_value = pd.DataFrame(columns=["city", "operator", "2G", "3G", "4G"])
+        mock_df.return_value = pd.DataFrame(
+            columns=["city", "operator", "2G", "3G", "4G"]
+        )
 
         mock_resp = Mock()
         mock_resp.json.return_value = {
@@ -96,11 +100,13 @@ class MobileCoverageServiceTests(TestCase):
         service = MobileCoverage("some address")
         result = service.retrieve_coverage()
 
-        self.assertEqual(result["coverage"], {})
+        expected_coverage = {}
+        for op in LIST_OPERATEURS:
+            expected_coverage[op] = {"2G": False, "3G": False, "4G": False}
+        self.assertEqual(result["coverage"], expected_coverage)
 
 
 class EndpointTests(TestCase):
-
     @patch("api.services.mobile_coverage.MobileCoverage.retrieve_coverage")
     def test_coverage_endpoint_success(self, mock_service):
         mock_service.return_value = {"coverage": {"Orange": {"2G": True}}}
