@@ -1,40 +1,19 @@
-version: "3.9"
+version: '3.9'
 
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: mobile_coverage_api
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
+    build: .
+    command: python mobile_coverage/manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
-    environment:
-      DJANGO_DEBUG: "1"
-      DJANGO_SECRET_KEY: "local_dev_secret"
-      DJANGO_ALLOWED_HOSTS: "*"
     depends_on:
       - db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
-      interval: 20s
-      timeout: 5s
-      retries: 3
 
   db:
     image: postgres:15
-    container_name: mobile_coverage_db
-    restart: always
+    environment:
+      POSTGRES_DB: mobile_coverage_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_DB: coverage
-      POSTGRES_USER: coverage_user
-      POSTGRES_PASSWORD: coverage_pass
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
