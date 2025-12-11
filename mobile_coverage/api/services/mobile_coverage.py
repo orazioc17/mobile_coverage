@@ -1,13 +1,10 @@
-import os
 from functools import lru_cache
 import requests
 from requests.exceptions import RequestException
 
 import pandas as pd
 
-GEO_URL = 'https://data.geopf.fr/geocodage/search'
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-COVERAGE_CSV_PATH = os.path.join(BASE_DIR, "api", "data", "city_mobile_coverage.csv")
+from api.utils.constants import GEO_URL, COVERAGE_CSV_PATH, LIST_OPERATEURS
 
 
 class MobileCoverage:
@@ -26,14 +23,14 @@ class MobileCoverage:
         try:
             response = requests.get(GEO_URL, params=params, timeout=5)
             response.raise_for_status()
-        except RequestException as e:
+        except RequestException:
             raise ValueError("External geocoding service is unavailable")
 
         data = response.json()
 
         if not data.get("features"):
             raise ValueError("No address found for the given query")
-        
+
         props = data["features"][0].get("properties", {})
 
         try:
@@ -49,7 +46,7 @@ class MobileCoverage:
     def get_coverage_df():
         try:
             return pd.read_csv(COVERAGE_CSV_PATH, sep=";")
-        except Exception as e:
+        except Exception:
             raise RuntimeError("Failed to load coverage data")
 
     def retrieve_coverage(self):
@@ -59,22 +56,18 @@ class MobileCoverage:
         df = df.query("city == @city")
         city = city.capitalize()
 
-        if df.empty:
-            return {
-                "matched_city": city,
-                "confidence_score": score,
-                "coverage": {}
-            }
-        
         operators = (
             df.set_index("operator")[["2G", "3G", "4G"]]
             .astype(bool)
             .to_dict(orient="index")
         )
 
-        return {
-            "matched_city": city,
-            "confidence_score": score,
-            "coverage": operators
-        }
+        if not operators:
+            for op in LIST_OPERATEURS:
+                operators[op] = {"2G": False, "3G": False, "4G": False}
+        else:
+            for op in LIST_OPERATEURS:
+                if op not in operators.keys():
+                    operators[op] = {"2G": False, "3G": False, "4G": False}
 
+        return {"matched_city": city, "confidence_score": score, "coverage": operators}
